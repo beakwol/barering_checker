@@ -1,0 +1,43 @@
+# Streamlit Web Application Requirements
+# Install: pip install -r requirements-webapp.txt
+
+# First install base requirements
+-r requirements.txt
+
+# Web Framework
+streamlit>=1.28.0
+
+# Interactive Visualizations
+plotly>=5.17.0
+streamlit-plotly-events>=0.0.6
+
+# Image Processing
+pillow>=10.1.0
+
+# HTTP Requests (for API calls)
+requests>=2.31.0
+
+# Additional Streamlit Components
+streamlit-aggrid>=0.3.4  # Advanced data tables
+streamlit-option-menu>=0.3.6  # Better navigation
+streamlit-lottie>=0.0.5  # Animations
+
+# PDF Generation (Optional)
+# reportlab>=4.0.0
+# matplotlib-pdf>=1.0.0
+
+# Excel Export (Optional)
+# openpyxl>=3.1.0
+# xlsxwriter>=3.1.0
+
+# Caching
+cachetools>=5.3.0
+
+# File Handling
+python-magic>=0.4.27  # File type detection (Windows: python-magic-bin)
+
+# Date/Time
+python-dateutil>=2.8.0
+
+# Environment Variables
+python-dotenv>=1.0.0

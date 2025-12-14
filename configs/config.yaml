@@ -1,0 +1,458 @@
+# NASA Bearing Anomaly Detection and RUL Prediction
+# Main Configuration File
+
+# Project Information
+project:
+  name: "NASA Bearing Anomaly Detection"
+  version: "0.1.0"
+  description: "ML/DL-based bearing anomaly detection and remaining useful life prediction"
+  author: "Claude AI"
+  created_date: "2025-11-29"
+
+# Data Configuration
+data:
+  # Paths
+  raw_path: "data/raw"
+  processed_path: "data/processed"
+  features_path: "data/features"
+
+  # Sampling
+  sampling_rate: 20000  # Hz (original sampling rate)
+  downsample_rate: 10   # Downsample ratio
+  target_rate: 2000     # Hz (after downsampling: 20000/10)
+
+  # Sequence
+  sequence_length: 2048  # Number of samples per sequence
+  overlap: 0.5          # Overlap ratio for sliding window
+
+  # Bearing information
+  bearings:
+    - id: 1
+      test_set: "1st_test"
+      status: "normal"
+      failure_index: null
+    - id: 2
+      test_set: "1st_test"
+      status: "normal"
+      failure_index: null
+    - id: 3
+      test_set: "2nd_test"
+      status: "failed"
+      failure_index: 1700
+    - id: 4
+      test_set: "2nd_test"
+      status: "failed"
+      failure_index: 1800
+
+# Preprocessing Configuration
+preprocessing:
+  # Normalization method: 'standard', 'minmax', 'robust', 'none'
+  normalization: "standard"
+
+  # Channel combination: 'rms', 'mean', 'max', 'separate'
+  channel_combination: "rms"
+
+  # Filtering
+  filter:
+    enabled: true
+    type: "butterworth"
+    order: 4
+    lowcut: 10      # Hz
+    highcut: 5000   # Hz
+
+  # Noise handling
+  remove_outliers: true
+  outlier_threshold: 3.0  # Standard deviations
+
+# Labeling Configuration
+labels:
+  # Anomaly detection labels
+  anomaly:
+    # TEST1 베어링 정상 데이터 제한 (고장 시작 전까지만 사용)
+    test1_bearing_1_limit: 1724  # TEST1 Bearing 1: Use first 1724 files (normal only, 80% of total, anomaly detected at ~548)
+    test1_bearing_2_limit: 1724  # TEST1 Bearing 2: Use first 1724 files (normal only, 80% of total, anomaly detected at ~497)
+    test1_bearing_3_limit: 1724  # TEST1 Bearing 3: Use first 1724 files (normal only, 80% of total)
+    test1_bearing_4_limit: 1724  # TEST1 Bearing 4: Use first 1724 files (normal only, 80% of total)
+    # TEST2 베어링 정상 데이터 제한 (고장 시작 전까지만 사용)
+    bearing_1_failure_start: 787  # TEST2 Bearing 1: Use first 787 files (normal only, safe 80% of total, failure starts later)
+    bearing_2_failure_start: 823   # TEST2 Bearing 2: Use first 823 files (normal only, failure starts at ~923)
+    bearing_3_failure_start: 702  # TEST2 Bearing 3: Use first 702 files (normal only, failure starts at ~802)
+    bearing_4_failure_start: 787  # TEST2 Bearing 4: Use first 787 files (normal only, safe 80% of total)
+    # TEST3 베어링 정상 데이터 제한 (고장 시작 전까지만 사용)
+    test3_bearing_1_limit: 3558   # TEST3 Bearing 1: Use first 3558 files (normal only, 80% of 4448 files)
+    test3_bearing_2_limit: 3558   # TEST3 Bearing 2: Use first 3558 files (normal only, 80% of 4448 files)
+    test3_bearing_3_failure_start: 3558  # TEST3 Bearing 3: Outer race failure occurred
+    test3_bearing_4_limit: 3558   # TEST3 Bearing 4: Use first 3558 files (normal only, 80% of 4448 files)
+    early_detection_window: 100    # Files before failure to label as anomaly
+
+  # RUL (Remaining Useful Life) labels
+  rul:
+    method: "piecewise"  # 'linear' or 'piecewise'
+    max_rul: 2000        # Maximum RUL value (hours or file count)
+    unit: "files"        # 'files', 'hours', or 'cycles'
+
+# Data Split Configuration
+split:
+  # Training data: Bearing 1 and 2 (normal operation)
+  train_bearings: [1, 2]
+
+  # Validation data: Bearing 3 (up to failure point)
+  val_bearing: 3
+  val_split_index: 1700  # Use files before this index for validation
+
+  # Test data: Bearing 3 and 4 (failure progression)
+  test_bearings: [3, 4]
+
+  # Split ratios (if using random split)
+  train_ratio: 0.7
+  val_ratio: 0.15
+  test_ratio: 0.15
+
+  # Random seed for reproducibility
+  random_seed: 42
+
+# Feature Extraction Configuration
+features:
+  # Time domain features
+  time_domain:
+    - "mean"
+    - "std"
+    - "rms"
+    - "peak"
+    - "peak_to_peak"
+    - "crest_factor"
+    - "skewness"
+    - "kurtosis"
+    - "shape_factor"
+    - "impulse_factor"
+
+  # Frequency domain features
+  frequency_domain:
+    - "spectral_centroid"
+    - "spectral_spread"
+    - "spectral_skewness"
+    - "spectral_kurtosis"
+    - "spectral_rolloff"
+    - "peak_frequency"
+    - "frequency_variance"
+
+  # Wavelet features
+  wavelet:
+    enabled: true
+    wavelet_type: "db4"  # Daubechies 4
+    level: 4
+
+  # Envelope analysis
+  envelope:
+    enabled: true
+    method: "hilbert"
+
+# Model Configurations
+
+# LSTM Autoencoder (Anomaly Detection)
+models:
+  lstm_autoencoder:
+    # Architecture
+    latent_dim: 32
+    lstm_units: [128, 64, 32]  # Encoder layers
+    dropout: 0.2
+    recurrent_dropout: 0.2
+
+    # Training
+    learning_rate: 0.001
+    batch_size: 16
+    epochs: 100
+    validation_split: 0.2
+
+    # Early stopping
+    early_stopping:
+      patience: 15
+      restore_best_weights: true
+
+    # Anomaly threshold
+    threshold_method: "percentile"  # 'percentile' or 'std'
+    threshold_percentile: 99        # Use 99th percentile of reconstruction error
+    threshold_std: 3.0              # Or 3 standard deviations
+
+    # Model saving
+    save_path: "models/lstm_autoencoder.h5"
+    checkpoint_path: "models/checkpoints/lstm_ae"
+
+  # CNN-LSTM (RUL Prediction)
+  cnn_lstm_rul:
+    # CNN Architecture
+    conv_filters: [64, 128, 256]
+    kernel_sizes: [5, 5, 5]
+    pool_sizes: [2, 2, 2]
+
+    # LSTM Architecture
+    lstm_units: [128, 64]
+
+    # Dense layers
+    dense_units: [64, 32]
+
+    # Regularization
+    dropout: 0.3
+    l2_regularization: 0.01
+    batch_normalization: true
+
+    # Training
+    learning_rate: 0.0005
+    batch_size: 32
+    epochs: 150
+    validation_split: 0.2
+
+    # Early stopping
+    early_stopping:
+      patience: 20
+      restore_best_weights: true
+
+    # Learning rate schedule
+    reduce_lr:
+      factor: 0.5
+      patience: 10
+      min_lr: 0.00001
+
+    # Model saving
+    save_path: "models/cnn_lstm_rul.h5"
+    checkpoint_path: "models/checkpoints/cnn_lstm"
+
+  # XGBoost (RUL Prediction - Baseline)
+  xgboost_rul:
+    # Model parameters
+    n_estimators: 500
+    max_depth: 6
+    learning_rate: 0.05
+    subsample: 0.8
+    colsample_bytree: 0.8
+
+    # Regularization
+    reg_alpha: 0.1  # L1
+    reg_lambda: 1.0  # L2
+
+    # Other parameters
+    objective: "reg:squarederror"
+    eval_metric: "rmse"
+    random_state: 42
+    n_jobs: -1  # Use all CPU cores
+
+    # Early stopping
+    early_stopping_rounds: 50
+
+    # Model saving
+    save_path: "models/xgboost_rul.pkl"
+
+# Evaluation Metrics
+evaluation:
+  # Anomaly detection metrics
+  anomaly_detection:
+    - "precision"
+    - "recall"
+    - "f1_score"
+    - "accuracy"
+    - "auc_roc"
+    - "auc_pr"
+    - "confusion_matrix"
+
+  # RUL prediction metrics
+  rul_prediction:
+    - "mae"          # Mean Absolute Error
+    - "rmse"         # Root Mean Squared Error
+    - "mape"         # Mean Absolute Percentage Error
+    - "r2_score"     # R-squared
+    - "max_error"
+
+  # Early detection metrics
+  early_detection:
+    advance_warning_time: true  # How early anomaly was detected
+    false_alarm_rate: true
+
+# API Configuration
+api:
+  host: "0.0.0.0"
+  port: 8000
+  reload: true  # Auto-reload on code changes (development only)
+
+  # CORS
+  cors_origins:
+    - "http://localhost:8501"  # Streamlit app
+    - "http://localhost:3000"  # React app (if any)
+    - "*"  # Allow all (development only, remove in production)
+
+  # File upload
+  max_upload_size: 3072  # MB (3GB for full bearing data files)
+  allowed_extensions: [".csv", ".txt", ".dat"]
+
+  # Rate limiting
+  rate_limit:
+    enabled: false
+    max_requests: 100
+    window_seconds: 60
+
+  # Logging
+  log_level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  log_file: "logs/api.log"
+
+# Web App Configuration
+webapp:
+  # Basic settings
+  title: "NASA Bearing Anomaly Detection & RUL Prediction"
+  page_icon: "⚙️"
+  layout: "wide"
+  initial_sidebar_state: "expanded"
+
+  # Theme
+  theme:
+    primary_color: "#FF4B4B"
+    background_color: "#FFFFFF"
+    secondary_background_color: "#F0F2F6"
+    text_color: "#262730"
+    font: "sans serif"
+
+  # Cache
+  cache_ttl: 3600  # seconds (1 hour)
+
+  # File upload
+  max_upload_size: 3072  # MB (3GB for full bearing data files)
+
+  # Graph settings
+  default_graph_height: 500
+  default_graph_width: null  # Auto
+
+  # API endpoint
+  api_url: "http://localhost:8000"
+
+  # Logging
+  log_level: "INFO"
+  log_file: "logs/webapp.log"
+
+# Paths
+paths:
+  # Model paths
+  models: "models"
+  checkpoints: "models/checkpoints"
+
+  # Data paths
+  data: "data"
+  raw: "data/raw"
+  processed: "data/processed"
+  features: "data/features"
+
+  # Output paths
+  results: "results"
+  plots: "results/plots"
+  reports: "results/reports"
+
+  # Log paths
+  logs: "logs"
+
+  # Config paths
+  configs: "configs"
+
+# Logging Configuration
+logging:
+  version: 1
+  disable_existing_loggers: false
+
+  formatters:
+    standard:
+      format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    detailed:
+      format: "%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s"
+
+  handlers:
+    console:
+      class: "logging.StreamHandler"
+      level: "INFO"
+      formatter: "standard"
+      stream: "ext://sys.stdout"
+
+    file:
+      class: "logging.FileHandler"
+      level: "DEBUG"
+      formatter: "detailed"
+      filename: "logs/app.log"
+      mode: "a"
+
+  root:
+    level: "DEBUG"
+    handlers: ["console", "file"]
+
+# Visualization Configuration
+visualization:
+  # Plot style
+  style: "seaborn"  # 'seaborn', 'ggplot', 'default'
+
+  # Figure size
+  figure_size: [12, 6]
+  dpi: 100
+
+  # Colors
+  color_palette: "Set2"
+  anomaly_color: "#FF0000"
+  normal_color: "#00FF00"
+
+  # Save format
+  save_format: "png"  # 'png', 'pdf', 'svg'
+  save_dpi: 300
+
+# Experiment Tracking
+experiment:
+  tracking: false  # Enable MLflow or Weights & Biases
+  backend: "mlflow"  # 'mlflow' or 'wandb'
+
+  mlflow:
+    tracking_uri: "file:./mlruns"
+    experiment_name: "bearing_anomaly_detection"
+
+  wandb:
+    project: "bearing-anomaly"
+    entity: null  # Your W&B username
+
+# Random Seeds (for reproducibility)
+random_seeds:
+  numpy: 42
+  tensorflow: 42
+  python: 42
+  torch: 42
+
+# Performance
+performance:
+  # Multi-processing
+  n_jobs: -1  # -1 means use all CPU cores
+
+  # Memory
+  batch_processing: true
+  batch_size: 1000
+
+  # GPU
+  use_gpu: true
+  gpu_memory_growth: true
+  mixed_precision: false  # Use mixed precision training (faster, less memory)
+
+# Notifications
+notifications:
+  enabled: false
+  email:
+    smtp_server: "smtp.gmail.com"
+    smtp_port: 587
+    sender: "your_email@gmail.com"
+    password: "your_password"
+    recipients: ["recipient@example.com"]
+
+  slack:
+    webhook_url: null
+
+# Production Settings
+production:
+  debug: false
+  testing: false
+
+  # Security
+  secret_key: "change-this-in-production"
+  allowed_hosts: ["localhost", "127.0.0.1"]
+
+  # Database (if needed)
+  database:
+    enabled: false
+    url: "sqlite:///bearing_data.db"
