@@ -86,15 +86,9 @@ pip install -r requirements-webapp.txt
 python run_api.py
 ```
 
-또는
-
 ```bash
 uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
 ```
-
-API 서버가 실행되면:
-- API 문서: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
 
 ### 2. 웹 앱 실행 (별도 터미널)
 
@@ -132,8 +126,6 @@ timestamp,ch1,ch2
 2003.10.22.12.06.24,0.234,-0.567
 ...
 ```
-
-또는
 
 ```
 timestamp,value
@@ -234,9 +226,6 @@ Parameters:
 3. **CSV 형식**: 최소 2048개 샘플 필요
 4. **모델 파일**: models/ 폴더의 v3 모델 파일 필수
 
-## 라이센스
-
-이 프로젝트는 교육 및 연구 목적으로 제공됩니다.
 
 ## 기술 스택
 
@@ -250,5 +239,4 @@ Parameters:
 
 - NASA IMS Bearing Dataset 기반
 - LSTM Autoencoder를 사용한 이상 탐지
-- Domain Shift 문제 해결 (v3 모델)
 
