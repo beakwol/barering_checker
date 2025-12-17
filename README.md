@@ -1,6 +1,7 @@
 # NASA Bearing Anomaly Detection System
 
 LSTM Autoencoder 기반 베어링 이상 탐지 시스템
+정상데이터를 학습한 오토인코더를 이용하여 인코딩 및 디코딩 과정 중 복원 오차율을 기반으로 이상탐지하는 시스템
 
 ## 프로젝트 구조
 
